@@ -1405,15 +1405,25 @@ let mealsPageData = {};
 let currentEditDate = null;
 
 function initMealsPage() {
-  currentMealMonth = new Date();
-  selectedMealWeekOffset = 0;
-  renderMonthCalendar();
-  loadMealsPageData();
-  const role = sessionStorage.getItem('dashRole') || 'display';
-  document.getElementById('keegan-suggest-section').style.display = role === 'keegan' ? 'block' : 'none';
-  if (role === 'parent') {
-    document.getElementById('suggestions-section').style.display = 'block';
-    loadSuggestions();
+  try {
+    currentMealMonth = new Date();
+    selectedMealWeekOffset = 0;
+    const debug = document.getElementById('meals-debug');
+    if (debug) debug.textContent = 'Initializing...';
+    renderMonthCalendar();
+    if (debug) debug.textContent = 'Calendar rendered, loading data...';
+    loadMealsPageData();
+    const role = sessionStorage.getItem('dashRole') || 'display';
+    if (debug) debug.textContent = 'Role: ' + role + ', data loading...';
+    document.getElementById('keegan-suggest-section').style.display = role === 'keegan' ? 'block' : 'none';
+    if (role === 'parent') {
+      document.getElementById('suggestions-section').style.display = 'block';
+      loadSuggestions();
+    }
+  } catch(e) {
+    const debug = document.getElementById('meals-debug');
+    if (debug) debug.textContent = 'ERROR: ' + e.message;
+    console.error('initMealsPage error:', e);
   }
 }
 
@@ -1716,6 +1726,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div style="background:white;padding:20px 20px 12px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:100;">
       <div style="font-family:'Nunito',sans-serif;font-size:24px;font-weight:900;color:#1e3a5f;">🍽️ Meal Planner</div>
       <div style="font-size:12px;color:#64748b;margin-top:2px;" id="meals-page-week-label">This Week</div>
+      <div style="font-size:11px;color:#ef4444;margin-top:4px;" id="meals-debug"></div>
     </div>
     <div style="background:white;margin:12px;border-radius:14px;border:1px solid #e2e8f0;padding:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
