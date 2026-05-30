@@ -425,14 +425,19 @@ body:not(.role-display) .dash { padding-bottom: 80px; }
 .suggestion-card-actions { display:flex;gap:8px;margin-top:10px; }
 .suggestion-approve { flex:1;background:#dcfce7;color:#166534;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:800;cursor:pointer; }
 .suggestion-dismiss { flex:1;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:800;cursor:pointer; }
+
+.update-banner { position: fixed; top: 0; left: 0; right: 0; background: #1e3a5f; color: white; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; z-index: 9999; transform: translateY(-100%); transition: transform 0.3s ease; font-family: 'Nunito Sans', sans-serif; }
+.update-banner.visible { transform: translateY(0); }
+.update-banner-text { font-size: 13px; font-weight: 700; }
+.update-banner-btn { background: #f59e0b; color: #1e3a5f; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 900; cursor: pointer; font-family: 'Nunito', sans-serif; white-space: nowrap; }
 </style>
 
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    const CACHE_VERSION = 'donald-family-v1780182731';
+    const CACHE_VERSION = 'donald-family-v1780182961';
     const swCode = `
-const CACHE = '1780182731';
+const CACHE = '1780182961';
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(cache => cache.addAll(['/donald-family-dashboard/']))
@@ -446,6 +451,9 @@ self.addEventListener('activate', e => {
     ))
   );
   self.clients.claim();
+});
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 self.addEventListener('fetch', e => {
   e.respondWith(
@@ -462,18 +470,27 @@ self.addEventListener('fetch', e => {
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'activated') {
-            console.log('New version activated — reloading');
-            window.location.reload();
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // New version waiting — show banner
+            document.getElementById('update-banner')?.classList.add('visible');
           }
         });
       });
+      // Also check if there's already a waiting worker
+      if (reg.waiting) {
+        document.getElementById('update-banner')?.classList.add('visible');
+      }
     }).catch(err => console.log('SW failed:', err));
   });
 }
 </script></head>
 <body>
 
+
+<div class="update-banner" id="update-banner">
+  <div class="update-banner-text">🆕 New update available!</div>
+  <button class="update-banner-btn" onclick="applyUpdate()">Tap to refresh</button>
+</div>
 <div class="login-screen" id="login-screen">
   <div class="login-logo">🏠 Donald Family</div>
   <div class="login-sub">Who's viewing the dashboard?</div>
@@ -1661,6 +1678,19 @@ async function submitSuggestion() {
   closeSuggestSheet();
   await postToSheet({ action:'suggestMeal', date, meal, side, notes, suggestedBy:'Keegan' });
   alert('Suggestion submitted! Your parents will review it. 😄');
+}
+
+function applyUpdate() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (reg && reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+      window.location.reload();
+    });
+  } else {
+    window.location.reload();
+  }
 }
 document.addEventListener('DOMContentLoaded', function() {
   checkSession();
