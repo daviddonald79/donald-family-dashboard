@@ -345,6 +345,47 @@ body { background: #f0f4f8; font-family: 'Nunito Sans', sans-serif; }
 body.role-parent .parent-only { display: revert; }
 body.role-keegan .keegan-only { display: revert; }
 body.role-parent .keegan-only { display: revert; }
+
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e2e8f0; display: flex; z-index: 800; padding-bottom: env(safe-area-inset-bottom); }
+.bottom-nav.hidden { display: none; }
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 8px; cursor: pointer; border: none; background: none; gap: 3px; transition: color 0.15s; color: #94a3b8; }
+.nav-item.active { color: #2563eb; }
+.nav-item .nav-icon { font-size: 22px; line-height: 1; }
+.nav-item .nav-label { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; font-family: 'Nunito Sans', sans-serif; }
+.nav-item.parent-only { display: none; }
+body.role-parent .nav-item.parent-only { display: flex; }
+
+/* Page system */
+.page { display: none; }
+.page.active { display: block; }
+body.role-display .page { display: block; }
+body.role-display .page:not(#page-home) { display: none; }
+
+/* Add padding to dashboard so content isn't hidden behind nav */
+body:not(.role-display) .dash { padding-bottom: 80px; }
+
+/* Placeholder pages */
+.page-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; padding: 40px 20px; }
+.page-placeholder .placeholder-icon { font-size: 64px; }
+.page-placeholder .placeholder-title { font-family: 'Nunito', sans-serif; font-size: 24px; font-weight: 900; color: #1e3a5f; }
+.page-placeholder .placeholder-sub { font-size: 14px; color: #64748b; text-align: center; max-width: 280px; line-height: 1.6; }
+.page-placeholder .placeholder-badge { background: #dbeafe; color: #1d4ed8; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 20px; }
+
+/* Settings page */
+.settings-page { padding: 20px; padding-bottom: 100px; }
+.settings-section { margin-bottom: 24px; }
+.settings-section-title { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; padding-left: 4px; }
+.settings-card { background: white; border-radius: 14px; border: 1px solid #e2e8f0; overflow: hidden; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 0.5px solid #f1f5f9; cursor: pointer; }
+.settings-row:last-child { border-bottom: none; }
+.settings-row-left { display: flex; align-items: center; gap: 12px; }
+.settings-row-icon { font-size: 20px; width: 32px; text-align: center; }
+.settings-row-label { font-size: 14px; font-weight: 600; color: #1e293b; }
+.settings-row-sub { font-size: 12px; color: #94a3b8; margin-top: 1px; }
+.settings-row-arrow { color: #cbd5e1; font-size: 18px; }
+.settings-header { padding: 24px 20px 8px; }
+.settings-header-title { font-family: 'Nunito', sans-serif; font-size: 28px; font-weight: 900; color: #1e3a5f; }
+.settings-header-sub { font-size: 13px; color: #64748b; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -392,7 +433,7 @@ body.role-parent .keegan-only { display: revert; }
   </div>
 </div>
 <button class="logout-btn" id="logout-btn" style="display:none;" onclick="logout()">Switch User</button>
-<div class="dash">
+<div id="page-home" class="page active"><div class="dash">
 
   <div class="dash-header">
     <div class="card weather-card">
@@ -1146,11 +1187,14 @@ function enterDisplayMode() {
 
 function enterDashboard(role) {
   document.getElementById('login-screen').classList.add('hidden');
-  document.getElementById('logout-btn').style.display = 'block';
+  document.getElementById('logout-btn').style.display = role === 'display' ? 'none' : 'block';
   document.body.classList.remove('role-parent', 'role-keegan', 'role-display');
   document.body.classList.add('role-' + role);
   try { sessionStorage.setItem('dashRole', role); } catch(e) {}
   applyPermissions(role);
+  const nav = document.getElementById('bottom-nav');
+  if (nav) nav.classList.toggle('hidden', role === 'display');
+  showPage('home');
 }
 
 function applyPermissions(role) {
@@ -1191,10 +1235,13 @@ function logout() {
   document.body.classList.remove('role-parent', 'role-keegan', 'role-display');
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('logout-btn').style.display = 'none';
+  const nav = document.getElementById('bottom-nav');
+  if (nav) nav.classList.add('hidden');
   selectedRole = null;
   pinValue = '';
   document.getElementById('pin-section').style.display = 'none';
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
+  showPage('home');
 }
 
 function checkSession() {
@@ -1202,6 +1249,51 @@ function checkSession() {
     const role = sessionStorage.getItem('dashRole');
     if (role) enterDashboard(role);
   } catch(e) {}
+}
+
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pageEl = document.getElementById('page-' + page);
+  const navEl = document.getElementById('nav-' + page);
+  if (pageEl) pageEl.classList.add('active');
+  if (navEl) navEl.classList.add('active');
+}
+
+// Add task bottom sheet
+function openAddTaskSheet() {
+  const sheet = document.createElement('div');
+  sheet.id = 'add-task-sheet-wrapper';
+  sheet.innerHTML = `
+    <div class="bottom-sheet-overlay open" onclick="closeAddTaskSheet()"></div>
+    <div class="bottom-sheet open" style="padding-bottom:40px;">
+      <div class="bs-handle"></div>
+      <div class="bs-header">
+        <div class="bs-title">➕ Add Task</div>
+        <button class="bs-close" onclick="closeAddTaskSheet()">×</button>
+      </div>
+      <div style="padding:20px;">
+        <input class="bs-input" id="new-task-input" placeholder="Enter task..." autocomplete="off" style="margin-bottom:12px;">
+        <button class="bs-save-btn" style="background:#7c3aed;" onclick="saveNewTask()">Add Task</button>
+      </div>
+    </div>`;
+  document.body.appendChild(sheet);
+  setTimeout(() => document.getElementById('new-task-input')?.focus(), 100);
+}
+
+function closeAddTaskSheet() {
+  const el = document.getElementById('add-task-sheet-wrapper');
+  if (el) el.remove();
+}
+
+async function saveNewTask() {
+  const input = document.getElementById('new-task-input');
+  const task = input?.value.trim();
+  if (!task) return;
+  input.value = '';
+  await postToSheet({ action: 'undoTask', task });
+  await loadTasks();
+  closeAddTaskSheet();
 }
 document.addEventListener('DOMContentLoaded', function() {
   checkSession();
@@ -1219,5 +1311,24 @@ document.addEventListener('DOMContentLoaded', function() {
   setInterval(() => { loadEvents(); loadMeals(); loadTasks(); loadSummerWork(); loadPotty(); }, 300000);
 });
 </script>
+
+<nav class="bottom-nav hidden" id="bottom-nav">
+  <button class="nav-item active" id="nav-home" onclick="showPage('home')">
+    <span class="nav-icon">🏠</span>
+    <span class="nav-label">Home</span>
+  </button>
+  <button class="nav-item" id="nav-meals" onclick="showPage('meals')">
+    <span class="nav-icon">🍽️</span>
+    <span class="nav-label">Meals</span>
+  </button>
+  <button class="nav-item" id="nav-grocery" onclick="showPage('grocery')">
+    <span class="nav-icon">🛒</span>
+    <span class="nav-label">Grocery</span>
+  </button>
+  <button class="nav-item parent-only" id="nav-settings" onclick="showPage('settings')">
+    <span class="nav-icon">⚙️</span>
+    <span class="nav-label">Settings</span>
+  </button>
+</nav>
 </body>
 </html>
