@@ -430,23 +430,44 @@ body:not(.role-display) .dash { padding-bottom: 80px; }
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
+    const CACHE_VERSION = 'donald-family-v1780182731';
     const swCode = `
-self.addEventListener('install', e => e.waitUntil(
-  caches.open('donald-family-v1').then(cache => cache.addAll(['/donald-family-dashboard/']))
-));
+const CACHE = '1780182731';
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(cache => cache.addAll(['/donald-family-dashboard/']))
+  );
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys => Promise.all(
+      keys.filter(k => k !== CACHE).map(k => caches.delete(k))
+    ))
+  );
+  self.clients.claim();
+});
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+    fetch(e.request).then(res => {
       const clone = res.clone();
-      caches.open('donald-family-v1').then(c => c.put(e.request, clone));
+      caches.open(CACHE).then(c => c.put(e.request, clone));
       return res;
-    }))
+    }).catch(() => caches.match(e.request))
   );
 });`;
     const blob = new Blob([swCode], {type: 'application/javascript'});
     const swUrl = URL.createObjectURL(blob);
-    navigator.serviceWorker.register(swUrl).then(() => {
-      console.log('SW registered');
+    navigator.serviceWorker.register(swUrl).then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'activated') {
+            console.log('New version activated — reloading');
+            window.location.reload();
+          }
+        });
+      });
     }).catch(err => console.log('SW failed:', err));
   });
 }
