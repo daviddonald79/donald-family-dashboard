@@ -286,6 +286,29 @@ body { background: #f0f4f8; font-family: 'Nunito Sans', sans-serif; }
 
 @keyframes bookUnlock { 0% { transform: scale(1); } 40% { transform: scale(1.4) rotate(-5deg); } 70% { transform: scale(0.9) rotate(3deg); } 100% { transform: scale(1) rotate(0); } }
 .manga-book.unlocking { animation: bookUnlock 0.5s ease forwards; }
+
+.bottom-sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.bottom-sheet-overlay.open { opacity: 1; pointer-events: all; }
+.bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-radius: 20px 20px 0 0; z-index: 1001; padding: 0 0 40px; max-height: 90vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32,0.72,0,1); }
+.bottom-sheet.open { transform: translateY(0); }
+.bs-handle { width: 40px; height: 4px; background: #e2e8f0; border-radius: 2px; margin: 12px auto 0; }
+.bs-header { padding: 16px 20px 12px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
+.bs-title { font-family: 'Nunito', sans-serif; font-size: 18px; font-weight: 900; color: #1e3a5f; }
+.bs-close { background: none; border: none; font-size: 24px; color: #94a3b8; cursor: pointer; padding: 0; line-height: 1; }
+.bs-week { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.bs-day-row { background: #f8fafc; border-radius: 12px; padding: 12px 14px; border: 1px solid #e2e8f0; }
+.bs-day-label { font-size: 11px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.bs-inputs { display: flex; flex-direction: column; gap: 6px; }
+.bs-input { width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 15px; font-family: 'Nunito Sans', sans-serif; color: #1e293b; background: white; outline: none; -webkit-appearance: none; }
+.bs-input:focus { border-color: #2563eb; }
+.bs-input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.bs-save-btn { margin: 0 20px; background: #0f766e; color: white; border: none; border-radius: 14px; padding: 16px; font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 900; cursor: pointer; width: calc(100% - 40px); letter-spacing: 0.02em; }
+.bs-save-btn:active { transform: scale(0.98); }
+.bs-saving { opacity: 0.6; pointer-events: none; }
+.meal-day { cursor: pointer; transition: transform 0.15s; }
+.meal-day:active { transform: scale(0.96); }
+.meal-add-btn { background: none; border: 1.5px dashed #0d9488; border-radius: 8px; color: #0d9488; font-size: 11px; font-weight: 800; padding: 6px 10px; cursor: pointer; white-space: nowrap; font-family: 'Nunito Sans', sans-serif; }
+.meal-add-btn:hover { background: #f0fdfa; }
 </style>
 </head>
 <body>
@@ -377,7 +400,10 @@ body { background: #f0f4f8; font-family: 'Nunito Sans', sans-serif; }
   <div class="bottom-row">
     <div class="meal-section">
       <div class="portrait-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <div class="section-title" style="margin-bottom:0;color:#0f766e;flex:1;min-width:0;"><i class="ti ti-tools-kitchen-2"></i> Meal Plan</div>
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+          <div class="section-title" style="margin-bottom:0;color:#0f766e;"><i class="ti ti-tools-kitchen-2"></i> Meal Plan</div>
+          <button class="meal-add-btn" onclick="openMealSheet()">✏️ Edit Week</button>
+        </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="portrait-label" style="font-size:10px;font-weight:800;color:#0f766e;text-align:right;line-height:1.4;font-style:italic;">Potato<br>Girl 🥔</div>
           <div class="portrait-circle" style="width:54px;height:54px;border-radius:50%;overflow:hidden;border:2.5px solid #0d9488;flex-shrink:0;">
@@ -444,6 +470,17 @@ body { background: #f0f4f8; font-family: 'Nunito Sans', sans-serif; }
     </div>
   </div>
 
+
+<div class="bottom-sheet-overlay" id="bs-overlay" onclick="closeMealSheet()"></div>
+<div class="bottom-sheet" id="meal-sheet">
+  <div class="bs-handle"></div>
+  <div class="bs-header">
+    <div class="bs-title">📅 This Week's Meals</div>
+    <button class="bs-close" onclick="closeMealSheet()">×</button>
+  </div>
+  <div class="bs-week" id="bs-week-rows"></div>
+  <button class="bs-save-btn" onclick="saveAllMeals()">Save Meals</button>
+</div>
 </div>
 <script>
 const SHEET_ID = '1a7-juFqBK_m5tC1vypEQSOu9SPTZUYm3JWHiND9yco0';
@@ -632,14 +669,19 @@ async function loadEvents() {
 async function loadMeals() {
   try {
     const rows = await fetchSheet('Meals');
-    setHTML('meal-grid', rows.map(r =>
-      `<div class="meal-day">
-        <div class="meal-day-label">${(r[0]||'').substring(0,3)}</div>
-        <div class="meal-icon">${getMealIcon(r[1])}</div>
-        <div class="meal-name">${r[1]||''}</div>
-        <div class="meal-sub">${r[2]||''}</div>
-      </div>`
-    ).join(''));
+    const weekDates = getWeekDates();
+    const mealMap = {};
+    rows.forEach(r => { if (r[0]) mealMap[r[0].trim()] = { meal: r[1]||'', side: r[2]||'' }; });
+    const dayLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    setHTML('meal-grid', weekDates.map((d, i) => {
+      const m = mealMap[d.date] || { meal: '', side: '' };
+      return `<div class="meal-day" onclick="openMealSheet()">
+        <div class="meal-day-label">${dayLabels[i]}</div>
+        <div class="meal-icon">${m.meal ? getMealIcon(m.meal) : '➕'}</div>
+        <div class="meal-name">${m.meal || 'Add meal'}</div>
+        <div class="meal-sub">${m.side}</div>
+      </div>`;
+    }).join(''));
   } catch(e) { console.error('Meals', e); }
 }
 
@@ -808,6 +850,74 @@ function calcMangaEarned(mc, rc) {
   return earned;
 }
 
+
+function getWeekDates() {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const day = today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+  const dates = [];
+  const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    dates.push({ label: dayNames[i], date: yyyy+'-'+mm+'-'+dd, display: dayNames[i].substring(0,3)+' '+d.getDate() });
+  }
+  return dates;
+}
+
+let currentMealData = {};
+
+async function openMealSheet() {
+  const rows = await fetchSheet('Meals');
+  currentMealData = {};
+  rows.forEach(r => { if (r[0]) currentMealData[r[0].trim()] = { meal: r[1]||'', side: r[2]||'' }; });
+
+  const weekDates = getWeekDates();
+  const container = document.getElementById('bs-week-rows');
+  container.innerHTML = weekDates.map(d => {
+    const existing = currentMealData[d.date] || { meal: '', side: '' };
+    return `<div class="bs-day-row">
+      <div class="bs-day-label">${d.display}</div>
+      <div class="bs-inputs">
+        <input class="bs-input" id="meal-${d.date}" placeholder="Meal name" value="${existing.meal}" autocomplete="off">
+        <input class="bs-input" id="side-${d.date}" placeholder="Side dish (optional)" value="${existing.side}" autocomplete="off">
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('bs-overlay').classList.add('open');
+  document.getElementById('meal-sheet').classList.add('open');
+}
+
+function closeMealSheet() {
+  document.getElementById('bs-overlay').classList.remove('open');
+  document.getElementById('meal-sheet').classList.remove('open');
+}
+
+async function saveAllMeals() {
+  const btn = document.querySelector('.bs-save-btn');
+  btn.classList.add('bs-saving');
+  btn.textContent = 'Saving...';
+
+  const weekDates = getWeekDates();
+  const saves = weekDates.map(d => {
+    const meal = document.getElementById('meal-'+d.date)?.value.trim() || '';
+    const side = document.getElementById('side-'+d.date)?.value.trim() || '';
+    return postToSheet({ action: 'saveMeal', date: d.date, meal, side });
+  });
+
+  await Promise.all(saves);
+  await loadMeals();
+  closeMealSheet();
+
+  btn.classList.remove('bs-saving');
+  btn.textContent = 'Save Meals';
+}
 document.addEventListener('DOMContentLoaded', function() {
   updateDate();
   updateCountdown();
