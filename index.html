@@ -1709,6 +1709,143 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+
+<!-- Meals Page -->
+<div id="page-meals" class="page">
+  <div style="background:#f0f4f8;min-height:100vh;padding-bottom:100px;">
+    <div style="background:white;padding:20px 20px 12px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:100;">
+      <div style="font-family:'Nunito',sans-serif;font-size:24px;font-weight:900;color:#1e3a5f;">🍽️ Meal Planner</div>
+      <div style="font-size:12px;color:#64748b;margin-top:2px;" id="meals-page-week-label">This Week</div>
+    </div>
+    <div style="background:white;margin:12px;border-radius:14px;border:1px solid #e2e8f0;padding:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <button onclick="changeMonth(-1)" style="background:none;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px 12px;font-size:16px;cursor:pointer;">◀</button>
+        <div style="font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;color:#1e3a5f;" id="month-cal-label">—</div>
+        <button onclick="changeMonth(1)" style="background:none;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px 12px;font-size:16px;cursor:pointer;">▶</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:6px;">
+        <div style="text-align:center;font-size:10px;font-weight:800;color:#94a3b8;padding:4px;">M</div>
+        <div style="text-align:center;font-size:10px;font-weight:800;color:#94a3b8;padding:4px;">T</div>
+        <div style="text-align:center;font-size:10px;font-weight:800;color:#94a3b8;padding:4px;">W</div>
+        <div style="text-align:center;font-size:10px;font-weight:800;color:#94a3b8;padding:4px;">T</div>
+        <div style="text-align:center;font-size:10px;font-weight:800;color:#94a3b8;padding:4px;">F</div>
+        <div style="text-align:center;font-size:10px;font-weight:800;color:#94a3b8;padding:4px;">S</div>
+        <div style="text-align:center;font-size:10px;font-weight:800;color:#94a3b8;padding:4px;">S</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;" id="month-cal-grid"></div>
+    </div>
+    <div style="margin:0 12px;" id="meals-week-list"></div>
+    <div id="suggestions-section" style="margin:12px;display:none;">
+      <div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">💡 Pending Suggestions</div>
+      <div id="suggestions-list"></div>
+    </div>
+    <div id="keegan-suggest-section" style="margin:12px;display:none;">
+      <button onclick="openSuggestSheet()" style="background:white;border:1.5px dashed #2563eb;border-radius:14px;padding:16px;width:100%;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;color:#2563eb;cursor:pointer;">💡 Suggest a Meal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Grocery Page -->
+<div id="page-grocery" class="page">
+  <div class="page-placeholder">
+    <div class="placeholder-icon">🛒</div>
+    <div class="placeholder-title">Grocery List</div>
+    <div class="placeholder-sub">Tap staples, add custom items, auto-populate from meals, and export to your phone or Google Sheet.</div>
+    <div class="placeholder-badge">Coming Soon</div>
+  </div>
+</div>
+
+<!-- Settings Page -->
+<div id="page-settings" class="page">
+  <div class="settings-header">
+    <div class="settings-header-title">Settings</div>
+    <div class="settings-header-sub">Manage your family dashboard</div>
+  </div>
+  <div class="settings-page">
+    <div class="settings-section">
+      <div class="settings-section-title">Summer Work</div>
+      <div class="settings-card">
+        <div class="settings-row" onclick="alert('Coming soon')">
+          <div class="settings-row-left"><div class="settings-row-icon">📚</div><div><div class="settings-row-label">Assignment Totals</div><div class="settings-row-sub">Update math and reading counts</div></div></div>
+          <div class="settings-row-arrow">›</div>
+        </div>
+        <div class="settings-row" onclick="alert('Coming soon')">
+          <div class="settings-row-left"><div class="settings-row-icon">🎯</div><div><div class="settings-row-label">Summer Goal Date</div><div class="settings-row-sub">Change the completion target</div></div></div>
+          <div class="settings-row-arrow">›</div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Family Tasks</div>
+      <div class="settings-card">
+        <div class="settings-row" onclick="openAddTaskSheet()">
+          <div class="settings-row-left"><div class="settings-row-icon">➕</div><div><div class="settings-row-label">Add New Task</div><div class="settings-row-sub">Add an item to the family task list</div></div></div>
+          <div class="settings-row-arrow">›</div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Security</div>
+      <div class="settings-card">
+        <div class="settings-row" onclick="alert('Change PINs from the Google Sheet Pins tab')">
+          <div class="settings-row-left"><div class="settings-row-icon">🔐</div><div><div class="settings-row-label">Change PINs</div><div class="settings-row-sub">Edit PINs in the Google Sheet</div></div></div>
+          <div class="settings-row-arrow">›</div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Account</div>
+      <div class="settings-card">
+        <div class="settings-row" onclick="logout()">
+          <div class="settings-row-left"><div class="settings-row-icon">🚪</div><div><div class="settings-row-label">Switch User</div><div class="settings-row-sub">Log out and change role</div></div></div>
+          <div class="settings-row-arrow">›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Meal Edit Bottom Sheet -->
+<div class="bottom-sheet-overlay" id="meal-edit-overlay" onclick="closeMealEditSheet()"></div>
+<div class="bottom-sheet" id="meal-edit-sheet">
+  <div class="bs-handle"></div>
+  <div class="bs-header">
+    <div class="bs-title" id="meal-edit-title">Edit Meal</div>
+    <button class="bs-close" onclick="closeMealEditSheet()">×</button>
+  </div>
+  <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+    <input class="bs-input" id="meal-edit-emoji" placeholder="Emoji (optional, e.g. 🍕)" autocomplete="off" maxlength="4">
+    <input class="bs-input" id="meal-edit-name" placeholder="Meal name" autocomplete="off">
+    <input class="bs-input" id="meal-edit-side" placeholder="Side dish (optional)" autocomplete="off">
+    <input class="bs-input" id="meal-edit-notes" placeholder="Notes (e.g. make double batch)" autocomplete="off">
+    <input class="bs-input" id="meal-edit-ingredients" placeholder="Ingredients (comma separated)" autocomplete="off">
+    <input type="hidden" id="meal-edit-date">
+  </div>
+  <div style="padding:0 20px 20px;display:flex;gap:10px;">
+    <button onclick="saveMealEdit()" style="flex:1;background:#0f766e;color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;">Save</button>
+    <button onclick="deleteMealEdit()" style="background:#fee2e2;color:#dc2626;border:none;border-radius:14px;padding:16px 20px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;">Delete</button>
+  </div>
+</div>
+
+<!-- Suggest Meal Bottom Sheet -->
+<div class="bottom-sheet-overlay" id="suggest-overlay" onclick="closeSuggestSheet()"></div>
+<div class="bottom-sheet" id="suggest-sheet">
+  <div class="bs-handle"></div>
+  <div class="bs-header">
+    <div class="bs-title">💡 Suggest a Meal</div>
+    <button class="bs-close" onclick="closeSuggestSheet()">×</button>
+  </div>
+  <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+    <div style="font-size:12px;color:#64748b;background:#f8fafc;border-radius:10px;padding:10px 12px;">Your suggestion goes to your parents for approval first.</div>
+    <select class="bs-input" id="suggest-date" style="-webkit-appearance:none;"><option value="">Pick a day...</option></select>
+    <input class="bs-input" id="suggest-meal" placeholder="What meal do you want?" autocomplete="off">
+    <input class="bs-input" id="suggest-side" placeholder="Side dish (optional)" autocomplete="off">
+    <input class="bs-input" id="suggest-notes" placeholder="Why should we have this? 😄" autocomplete="off">
+  </div>
+  <div style="padding:0 20px 20px;">
+    <button onclick="submitSuggestion()" style="width:100%;background:#2563eb;color:white;border:none;border-radius:14px;padding:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;">Submit Suggestion</button>
+  </div>
+</div>
 <nav class="bottom-nav hidden" id="bottom-nav">
   <button class="nav-item active" id="nav-home" onclick="showPage('home')">
     <span class="nav-icon">🏠</span>
