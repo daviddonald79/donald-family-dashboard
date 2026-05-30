@@ -313,9 +313,85 @@ body { background: #f0f4f8; font-family: 'Nunito Sans', sans-serif; }
 .change-bg-btn { background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.3); border-radius: 8px; color: rgba(255,255,255,0.9); font-size: 10px; font-weight: 800; padding: 4px 8px; cursor: pointer; font-family: 'Nunito Sans', sans-serif; white-space: nowrap; transition: background 0.15s; }
 .change-bg-btn:hover { background: rgba(255,255,255,0.25); }
 #bg-file-input { display: none; }
+
+.login-screen { position: fixed; inset: 0; background: #0f0f1a; z-index: 9000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+.login-screen.hidden { display: none; }
+.login-logo { font-family: 'Nunito', sans-serif; font-size: 28px; font-weight: 900; color: white; text-align: center; margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: #64748b; margin-bottom: 40px; text-align: center; }
+.login-roles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 320px; margin-bottom: 32px; }
+.role-btn { background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 20px 12px; cursor: pointer; text-align: center; transition: all 0.2s; }
+.role-btn:active { transform: scale(0.97); }
+.role-btn.selected { border-color: #2563eb; background: rgba(37,99,235,0.2); }
+.role-btn .role-icon { font-size: 32px; margin-bottom: 8px; }
+.role-btn .role-name { font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 800; color: white; }
+.role-btn .role-desc { font-size: 11px; color: #64748b; margin-top: 3px; }
+.pin-section { width: 100%; max-width: 320px; }
+.pin-label { font-size: 12px; font-weight: 700; color: #64748b; text-align: center; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.pin-dots { display: flex; justify-content: center; gap: 12px; margin-bottom: 24px; }
+.pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #334155; background: transparent; transition: background 0.15s; }
+.pin-dot.filled { background: #2563eb; border-color: #2563eb; }
+.pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pin-key { background: rgba(255,255,255,0.08); border: none; border-radius: 14px; padding: 18px; font-family: 'Nunito', sans-serif; font-size: 20px; font-weight: 800; color: white; cursor: pointer; transition: background 0.15s; }
+.pin-key:active { background: rgba(255,255,255,0.2); transform: scale(0.95); }
+.pin-key.delete { font-size: 16px; }
+.pin-key.display-mode { grid-column: 1 / -1; background: rgba(37,99,235,0.3); border: 1.5px solid rgba(37,99,235,0.5); font-size: 14px; }
+.pin-error { text-align: center; color: #ef4444; font-size: 13px; font-weight: 700; margin-top: 12px; min-height: 20px; }
+.logout-btn { position: fixed; top: 12px; right: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: rgba(255,255,255,0.6); font-size: 11px; font-weight: 700; padding: 6px 10px; cursor: pointer; z-index: 500; }
+.logout-btn:hover { background: rgba(0,0,0,0.5); }
+
+/* Permission-based visibility */
+.parent-only { display: none; }
+.keegan-only { display: none; }
+body.role-parent .parent-only { display: revert; }
+body.role-keegan .keegan-only { display: revert; }
+body.role-parent .keegan-only { display: revert; }
 </style>
 </head>
 <body>
+
+<div class="login-screen" id="login-screen">
+  <div class="login-logo">🏠 Donald Family</div>
+  <div class="login-sub">Who's viewing the dashboard?</div>
+  <div class="login-roles">
+    <div class="role-btn" id="role-parent-btn" onclick="selectRole('parent')">
+      <div class="role-icon">👨‍👩‍👧‍👦</div>
+      <div class="role-name">Parents</div>
+      <div class="role-desc">Full access</div>
+    </div>
+    <div class="role-btn" id="role-keegan-btn" onclick="selectRole('keegan')">
+      <div class="role-icon">🎮</div>
+      <div class="role-name">Keegan</div>
+      <div class="role-desc">My dashboard</div>
+    </div>
+  </div>
+  <div class="pin-section" id="pin-section" style="display:none;">
+    <div class="pin-label" id="pin-label">Enter PIN</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinPress('1')">1</button>
+      <button class="pin-key" onclick="pinPress('2')">2</button>
+      <button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button>
+      <button class="pin-key" onclick="pinPress('5')">5</button>
+      <button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button>
+      <button class="pin-key" onclick="pinPress('8')">8</button>
+      <button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key" onclick="pinPress('0')">0</button>
+      <button class="pin-key delete" onclick="pinDelete()">⌫</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+  <div style="margin-top:24px;">
+    <button class="pin-key display-mode" onclick="enterDisplayMode()" style="padding:14px 32px;border-radius:12px;font-size:13px;">📺 TV Display Mode</button>
+  </div>
+</div>
+<button class="logout-btn" id="logout-btn" style="display:none;" onclick="logout()">Switch User</button>
 <div class="dash">
 
   <div class="dash-header">
@@ -354,7 +430,7 @@ body { background: #f0f4f8; font-family: 'Nunito Sans', sans-serif; }
     <div class="card summer-card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <div class="section-title" style="margin-bottom:0;color:#f59e0b;"><i class="ti ti-school"></i> Summer Work</div>
-        <button class="change-bg-btn" onclick="document.getElementById('bg-file-input').click()">🖼️ Change BG</button>
+        <button class="change-bg-btn keegan-only" onclick="document.getElementById('bg-file-input').click()">🖼️ Change BG</button>
         <input type="file" id="bg-file-input" accept="image/*" onchange="changeSummerBg(event)">
       </div>
       <div class="summer-grid">
@@ -410,7 +486,7 @@ body { background: #f0f4f8; font-family: 'Nunito Sans', sans-serif; }
       <div class="portrait-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
           <div class="section-title" style="margin-bottom:0;color:#0f766e;"><i class="ti ti-tools-kitchen-2"></i> Meal Plan</div>
-          <button class="meal-add-btn" onclick="openMealSheet()">✏️ Edit Week</button>
+          <button class="meal-add-btn parent-only" onclick="openMealSheet()">✏️ Edit Week</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="portrait-label" style="font-size:10px;font-weight:800;color:#0f766e;text-align:right;line-height:1.4;font-style:italic;">Potato<br>Girl 🥔</div>
@@ -452,7 +528,7 @@ body { background: #f0f4f8; font-family: 'Nunito Sans', sans-serif; }
           </div>
         </div>
       </div>
-      <button class="potty-btn" onclick="logPotty()">🚽 Lysithea went potty! +1 M&M</button>
+      <button class="potty-btn parent-only" onclick="logPotty()">🚽 Lysithea went potty! +1 M&M</button>
     </div>
   </div>
 
@@ -956,7 +1032,104 @@ function loadSavedSummerBg() {
     if (saved) setSummerBg(saved);
   } catch(err) {}
 }
+
+let selectedRole = null;
+let pinValue = '';
+let verifying = false;
+
+function selectRole(role) {
+  selectedRole = role;
+  pinValue = '';
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('role-' + role + '-btn').classList.add('selected');
+  document.getElementById('pin-section').style.display = 'block';
+  document.getElementById('pin-label').textContent = 'Enter ' + (role === 'parent' ? 'Parent' : 'Keegan\'s') + ' PIN';
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+}
+
+function pinPress(digit) {
+  if (pinValue.length >= 4 || verifying) return;
+  pinValue += digit;
+  updatePinDots();
+  if (pinValue.length === 4) verifyPin();
+}
+
+function pinDelete() {
+  pinValue = pinValue.slice(0, -1);
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('dot-' + i);
+    if (dot) dot.classList.toggle('filled', i < pinValue.length);
+  }
+}
+
+async function verifyPin() {
+  verifying = true;
+  document.getElementById('pin-error').textContent = '';
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'verifyPin', role: selectedRole, pin: pinValue })
+    });
+    // Since no-cors we can't read response, so fetch via sheet directly
+    const rows = await fetchSheet('Pins');
+    let valid = false;
+    rows.forEach(r => {
+      if (r[0] && r[0].toString().trim() === selectedRole && r[1] && r[1].toString().trim() === pinValue) valid = true;
+    });
+    if (valid) {
+      enterDashboard(selectedRole);
+    } else {
+      document.getElementById('pin-error').textContent = 'Incorrect PIN. Try again.';
+      pinValue = '';
+      updatePinDots();
+    }
+  } catch(e) {
+    document.getElementById('pin-error').textContent = 'Connection error. Try again.';
+    pinValue = '';
+    updatePinDots();
+  }
+  verifying = false;
+}
+
+function enterDisplayMode() {
+  enterDashboard('display');
+}
+
+function enterDashboard(role) {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('logout-btn').style.display = 'block';
+  document.body.classList.remove('role-parent', 'role-keegan', 'role-display');
+  document.body.classList.add('role-' + role);
+  try { sessionStorage.setItem('dashRole', role); } catch(e) {}
+}
+
+function logout() {
+  try { sessionStorage.removeItem('dashRole'); } catch(e) {}
+  document.body.classList.remove('role-parent', 'role-keegan', 'role-display');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('logout-btn').style.display = 'none';
+  selectedRole = null;
+  pinValue = '';
+  document.getElementById('pin-section').style.display = 'none';
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
+}
+
+function checkSession() {
+  try {
+    const role = sessionStorage.getItem('dashRole');
+    if (role) enterDashboard(role);
+  } catch(e) {}
+}
 document.addEventListener('DOMContentLoaded', function() {
+  checkSession();
   updateDate();
   updateCountdown();
   loadSavedSummerBg();
