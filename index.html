@@ -1470,22 +1470,22 @@ function renderMealsWeek() {
     const cardClass = 'meal-day-card' + (!hasM?' empty':'') + (d.isToday?' today':'') + (d.isPast?' past':'');
     const role = sessionStorage.getItem('dashRole')||'display';
     const clickable = role==='parent';
-    return \`<div class="${cardClass}" onclick="${clickable?`openMealEditSheet('${d.date}')`:''}" style="${!clickable?'cursor:default;':''}>
+    return `<div class="${cardClass}" onclick="${clickable?`openMealEditSheet('${d.date}')`:''}" style="${!clickable?'cursor:default;':''}>
       <div class="meal-card-date">
         <div class="meal-card-day">${d.shortLabel}</div>
         <div class="meal-card-num">${d.num}</div>
       </div>
       <div class="meal-card-divider"></div>
-      ${hasM ? \`<div class="meal-card-emoji">${emoji}</div>\` : ''}
+      ${hasM ? `<div class="meal-card-emoji">${emoji}</div>` : ''}
       <div class="meal-card-content">
         ${hasM
-          ? \`<div class="meal-card-name">${m.meal}</div>
+          ? `<div class="meal-card-name">${m.meal}</div>
              ${m.side?'<div class="meal-card-side">'+m.side+'</div>':''}
-             ${m.notes?'<div class="meal-card-notes">📝 '+m.notes+'</div>':''}\`
+             ${m.notes?'<div class="meal-card-notes">📝 '+m.notes+'</div>':''}`
           : '<div class="meal-card-empty-label">'+( role==='parent'?'Tap to add meal':'No meal planned')+'</div>'}
       </div>
       ${clickable?'<div class="meal-card-arrow">›</div>':''}
-    </div>\`;
+    </div>`;
   }).join('');
 }
 
@@ -1531,10 +1531,10 @@ function renderMonthCalendar() {
     if (isOther) cls+=' other-month';
     // Find week offset for this date
     const weekOffset = getWeekOffsetForDate(d);
-    return \`<div class="${cls}" onclick="jumpToWeek(${weekOffset})">
+    return `<div class="${cls}" onclick="jumpToWeek(${weekOffset})">
       <div class="cal-day-num">${d.getDate()}</div>
       ${hasMeal?'<div class="cal-day-dot"></div>':''}
-    </div>\`;
+    </div>`;
   }).join('');
 }
 
@@ -1625,7 +1625,7 @@ async function loadSuggestions() {
       const side = r[2]||'';;
       const notes = r[3]||'';;
       const by = r[5]||'Keegan';
-      return \`<div class="suggestion-card">
+      return `<div class="suggestion-card">
         <div class="suggestion-card-name">${meal}${side?' · '+side:''}</div>
         <div class="suggestion-card-meta">Suggested by ${by} for ${date}${notes?' · "'+notes+'"':''}
         </div>
@@ -1633,7 +1633,7 @@ async function loadSuggestions() {
           <button class="suggestion-approve" onclick="approveSuggestion('${date}','${meal}','${side}','${notes}')">✓ Approve</button>
           <button class="suggestion-dismiss" onclick="dismissSuggestion('${date}','${meal}')">✕ Dismiss</button>
         </div>
-      </div>\`;
+      </div>`;
     }).join('');
   } catch(e) { console.error('Suggestions', e); }
 }
@@ -1656,7 +1656,7 @@ function openSuggestSheet() {
   const dates = getWeekDatesForOffset(selectedMealWeekOffset);
   const sel = document.getElementById('suggest-date');
   sel.innerHTML = '<option value="">Pick a day...</option>' +
-    dates.map(d => \`<option value="${d.date}">${d.shortLabel} ${d.display}</option>\`).join('');
+    dates.map(d => `<option value="${d.date}">${d.shortLabel} ${d.display}</option>`).join('');
   document.getElementById('suggest-meal').value='';
   document.getElementById('suggest-side').value='';
   document.getElementById('suggest-notes').value='';
