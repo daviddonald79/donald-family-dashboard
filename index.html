@@ -393,6 +393,38 @@ body:not(.role-display) .dash { padding-bottom: 80px; }
 .settings-header { padding: 24px 20px 8px; }
 .settings-header-title { font-family: 'Nunito', sans-serif; font-size: 28px; font-weight: 900; color: #1e3a5f; }
 .settings-header-sub { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+.meal-day-card { background:white;border-radius:14px;border:1px solid #e2e8f0;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:transform 0.15s; }
+.meal-day-card:active { transform:scale(0.98); }
+.meal-day-card.empty { border-style:dashed;border-color:#cbd5e1; }
+.meal-day-card.today { border-color:#2563eb;border-width:2px; }
+.meal-day-card.past { opacity:0.55; }
+.meal-card-date { text-align:center;min-width:44px; }
+.meal-card-day { font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.06em; }
+.meal-card-num { font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;color:#1e3a5f; }
+.meal-card-divider { width:1px;height:40px;background:#f1f5f9;flex-shrink:0; }
+.meal-card-emoji { font-size:24px;flex-shrink:0; }
+.meal-card-content { flex:1;min-width:0; }
+.meal-card-name { font-size:15px;font-weight:800;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.meal-card-side { font-size:12px;color:#64748b;margin-top:2px; }
+.meal-card-notes { font-size:11px;color:#0f766e;margin-top:3px;font-style:italic; }
+.meal-card-empty-label { font-size:14px;color:#94a3b8;font-weight:600; }
+.meal-card-arrow { color:#cbd5e1;font-size:18px;flex-shrink:0; }
+.cal-day { text-align:center;padding:6px 2px;border-radius:8px;cursor:pointer;transition:background 0.15s; }
+.cal-day:active { background:#dbeafe; }
+.cal-day.has-meal { background:#f0fdf4; }
+.cal-day.selected-week { background:#dbeafe; }
+.cal-day.today-cal { font-weight:900;color:#2563eb; }
+.cal-day.other-month { opacity:0.3; }
+.cal-day-num { font-size:13px;font-weight:600;color:#1e293b; }
+.cal-day.selected-week .cal-day-num { color:#1d4ed8; }
+.cal-day-dot { width:4px;height:4px;border-radius:50%;background:#0d9488;margin:2px auto 0; }
+.suggestion-card { background:white;border-radius:12px;border:1px solid #e2e8f0;padding:12px 14px;margin-bottom:8px; }
+.suggestion-card-name { font-size:14px;font-weight:800;color:#1e293b; }
+.suggestion-card-meta { font-size:11px;color:#64748b;margin-top:2px; }
+.suggestion-card-actions { display:flex;gap:8px;margin-top:10px; }
+.suggestion-approve { flex:1;background:#dcfce7;color:#166534;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:800;cursor:pointer; }
+.suggestion-dismiss { flex:1;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:800;cursor:pointer; }
 </style>
 
 <script>
@@ -1289,6 +1321,8 @@ function showPage(page) {
   const navEl = document.getElementById('nav-' + page);
   if (pageEl) pageEl.classList.add('active');
   if (navEl) navEl.classList.add('active');
+  if (page === 'meals') initMealsPage();
+  window.scrollTo(0, 0);
 }
 
 // Add task bottom sheet
@@ -1325,6 +1359,287 @@ async function saveNewTask() {
   await postToSheet({ action: 'undoTask', task });
   await loadTasks();
   closeAddTaskSheet();
+}
+
+let currentMealMonth = new Date();
+let selectedMealWeekOffset = 0;
+let mealsPageData = {};
+let currentEditDate = null;
+
+function initMealsPage() {
+  currentMealMonth = new Date();
+  selectedMealWeekOffset = 0;
+  renderMonthCalendar();
+  loadMealsPageData();
+  const role = sessionStorage.getItem('dashRole') || 'display';
+  document.getElementById('keegan-suggest-section').style.display = role === 'keegan' ? 'block' : 'none';
+  if (role === 'parent') {
+    document.getElementById('suggestions-section').style.display = 'block';
+    loadSuggestions();
+  }
+}
+
+async function loadMealsPageData() {
+  try {
+    const rows = await fetchSheet('Meals');
+    mealsPageData = {};
+    rows.forEach(r => {
+      if (r[0]) {
+        const key = typeof r[0] === 'string' ? r[0].trim() : formatDate(new Date(r[0]));
+        mealsPageData[key] = { meal:r[1]||'', side:r[2]||'', notes:r[3]||'', emoji:r[4]||'', ingredients:r[5]||'' };
+      }
+    });
+    renderMealsWeek();
+    renderMonthCalendar();
+  } catch(e) { console.error('Meals page load', e); }
+}
+
+function getWeekDatesForOffset(offset) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const day = today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (day===0?6:day-1) + (offset*7));
+  const dates = [];
+  const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday); d.setDate(monday.getDate()+i);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    const today2 = new Date(); today2.setHours(0,0,0,0);
+    dates.push({
+      label: dayNames[i], shortLabel: dayNames[i].substring(0,3),
+      date: yyyy+'-'+mm+'-'+dd,
+      display: monthNames[d.getMonth()]+' '+d.getDate(),
+      num: d.getDate(), month: d.getMonth(),
+      isPast: d < today2, isToday: d.getTime()===today2.getTime()
+    });
+  }
+  return dates;
+}
+
+function renderMealsWeek() {
+  const dates = getWeekDatesForOffset(selectedMealWeekOffset);
+  const label = selectedMealWeekOffset===0?'This Week':selectedMealWeekOffset===1?'Next Week':selectedMealWeekOffset===-1?'Last Week':dates[0].display+' – '+dates[6].display;
+  document.getElementById('meals-page-week-label').textContent = label;
+
+  const container = document.getElementById('meals-week-list');
+  container.innerHTML = dates.map(d => {
+    const m = mealsPageData[d.date] || {};
+    const hasM = !!m.meal;
+    const emoji = m.emoji || (hasM ? getMealIcon(m.meal) : '');
+    const cardClass = 'meal-day-card' + (!hasM?' empty':'') + (d.isToday?' today':'') + (d.isPast?' past':'');
+    const role = sessionStorage.getItem('dashRole')||'display';
+    const clickable = role==='parent';
+    return \`<div class="${cardClass}" onclick="${clickable?`openMealEditSheet('${d.date}')`:''}" style="${!clickable?'cursor:default;':''}>
+      <div class="meal-card-date">
+        <div class="meal-card-day">${d.shortLabel}</div>
+        <div class="meal-card-num">${d.num}</div>
+      </div>
+      <div class="meal-card-divider"></div>
+      ${hasM ? \`<div class="meal-card-emoji">${emoji}</div>\` : ''}
+      <div class="meal-card-content">
+        ${hasM
+          ? \`<div class="meal-card-name">${m.meal}</div>
+             ${m.side?'<div class="meal-card-side">'+m.side+'</div>':''}
+             ${m.notes?'<div class="meal-card-notes">📝 '+m.notes+'</div>':''}\`
+          : '<div class="meal-card-empty-label">'+( role==='parent'?'Tap to add meal':'No meal planned')+'</div>'}
+      </div>
+      ${clickable?'<div class="meal-card-arrow">›</div>':''}
+    </div>\`;
+  }).join('');
+}
+
+function renderMonthCalendar() {
+  const year = currentMealMonth.getFullYear();
+  const month = currentMealMonth.getMonth();
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('month-cal-label').textContent = monthNames[month]+' '+year;
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month+1, 0);
+  let startDow = firstDay.getDay(); // 0=Sun
+  // Convert to Mon-first: Mon=0
+  startDow = startDow===0?6:startDow-1;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const selDates = getWeekDatesForOffset(selectedMealWeekOffset);
+  const selDateStrings = selDates.map(d=>d.date);
+
+  let cells = [];
+  // Empty cells before first day
+  for (let i=0;i<startDow;i++) cells.push(null);
+  for (let d=1;d<=lastDay.getDate();d++) cells.push(new Date(year,month,d));
+
+  // Pad to complete last row
+  while (cells.length%7!==0) cells.push(null);
+
+  const grid = document.getElementById('month-cal-grid');
+  grid.innerHTML = cells.map(d => {
+    if (!d) return '<div></div>';
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    const dateStr = yyyy+'-'+mm+'-'+dd;
+    const isToday = d.getTime()===today.getTime();
+    const isSelected = selDateStrings.includes(dateStr);
+    const hasMeal = !!mealsPageData[dateStr]?.meal;
+    const isOther = d.getMonth()!==month;
+    let cls = 'cal-day';
+    if (isSelected) cls+=' selected-week';
+    if (isToday) cls+=' today-cal';
+    if (hasMeal) cls+=' has-meal';
+    if (isOther) cls+=' other-month';
+    // Find week offset for this date
+    const weekOffset = getWeekOffsetForDate(d);
+    return \`<div class="${cls}" onclick="jumpToWeek(${weekOffset})">
+      <div class="cal-day-num">${d.getDate()}</div>
+      ${hasMeal?'<div class="cal-day-dot"></div>':''}
+    </div>\`;
+  }).join('');
+}
+
+function getWeekOffsetForDate(date) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const day = today.getDay();
+  const thisMonday = new Date(today);
+  thisMonday.setDate(today.getDate()-(day===0?6:day-1));
+  const targetMonday = new Date(date);
+  const tDay = date.getDay();
+  targetMonday.setDate(date.getDate()-(tDay===0?6:tDay-1));
+  return Math.round((targetMonday-thisMonday)/(7*86400000));
+}
+
+function jumpToWeek(offset) {
+  selectedMealWeekOffset = offset;
+  renderMealsWeek();
+  renderMonthCalendar();
+}
+
+function changeMonth(dir) {
+  currentMealMonth = new Date(currentMealMonth.getFullYear(), currentMealMonth.getMonth()+dir, 1);
+  renderMonthCalendar();
+}
+
+function openMealEditSheet(date) {
+  currentEditDate = date;
+  const m = mealsPageData[date] || {};
+  const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const d = new Date(date+'T00:00:00');
+  const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  document.getElementById('meal-edit-title').textContent = dayNames[d.getDay()]+', '+monthNames[d.getMonth()]+' '+d.getDate();
+  document.getElementById('meal-edit-emoji').value = m.emoji||'';
+  document.getElementById('meal-edit-name').value = m.meal||'';
+  document.getElementById('meal-edit-side').value = m.side||'';
+  document.getElementById('meal-edit-notes').value = m.notes||'';
+  document.getElementById('meal-edit-ingredients').value = m.ingredients||'';
+  document.getElementById('meal-edit-date').value = date;
+  document.getElementById('meal-edit-overlay').classList.add('open');
+  document.getElementById('meal-edit-sheet').classList.add('open');
+  leviAudio.currentTime=0; leviAudio.play();
+}
+
+function closeMealEditSheet() {
+  document.getElementById('meal-edit-overlay').classList.remove('open');
+  document.getElementById('meal-edit-sheet').classList.remove('open');
+}
+
+async function saveMealEdit() {
+  const date = document.getElementById('meal-edit-date').value;
+  const meal = document.getElementById('meal-edit-name').value.trim();
+  const side = document.getElementById('meal-edit-side').value.trim();
+  const notes = document.getElementById('meal-edit-notes').value.trim();
+  const emoji = document.getElementById('meal-edit-emoji').value.trim();
+  const ingredients = document.getElementById('meal-edit-ingredients').value.trim();
+  if (!meal) return;
+  mealsPageData[date] = { meal, side, notes, emoji, ingredients };
+  closeMealEditSheet();
+  renderMealsWeek();
+  renderMonthCalendar();
+  await postToSheet({ action:'saveMeal', date, meal, side, notes, emoji, ingredients });
+  await loadMeals(); // refresh home tab too
+}
+
+async function deleteMealEdit() {
+  const date = document.getElementById('meal-edit-date').value;
+  delete mealsPageData[date];
+  closeMealEditSheet();
+  renderMealsWeek();
+  renderMonthCalendar();
+  await postToSheet({ action:'saveMeal', date, meal:'' });
+  await loadMeals();
+}
+
+async function loadSuggestions() {
+  try {
+    const rows = await fetchSheet('Suggestions');
+    const pending = rows.filter(r => r[4] && r[4].toString().trim().toLowerCase()==='pending');
+    const container = document.getElementById('suggestions-list');
+    if (pending.length===0) {
+      document.getElementById('suggestions-section').style.display='none';
+      return;
+    }
+    document.getElementById('suggestions-section').style.display='block';
+    container.innerHTML = pending.map(r => {
+      const date = typeof r[0]==='string'?r[0].trim():formatDate(new Date(r[0]));
+      const meal = r[1]||'Unknown meal';
+      const side = r[2]||'';;
+      const notes = r[3]||'';;
+      const by = r[5]||'Keegan';
+      return \`<div class="suggestion-card">
+        <div class="suggestion-card-name">${meal}${side?' · '+side:''}</div>
+        <div class="suggestion-card-meta">Suggested by ${by} for ${date}${notes?' · "'+notes+'"':''}
+        </div>
+        <div class="suggestion-card-actions">
+          <button class="suggestion-approve" onclick="approveSuggestion('${date}','${meal}','${side}','${notes}')">✓ Approve</button>
+          <button class="suggestion-dismiss" onclick="dismissSuggestion('${date}','${meal}')">✕ Dismiss</button>
+        </div>
+      </div>\`;
+    }).join('');
+  } catch(e) { console.error('Suggestions', e); }
+}
+
+async function approveSuggestion(date, meal, side, notes) {
+  mealsPageData[date] = { meal, side, notes, emoji:'', ingredients:'' };
+  renderMealsWeek();
+  await postToSheet({ action:'saveMeal', date, meal, side, notes, emoji:'', ingredients:'' });
+  await postToSheet({ action:'approveSuggestion', date, meal });
+  await loadSuggestions();
+  await loadMeals();
+}
+
+async function dismissSuggestion(date, meal) {
+  await postToSheet({ action:'dismissSuggestion', date, meal });
+  await loadSuggestions();
+}
+
+function openSuggestSheet() {
+  const dates = getWeekDatesForOffset(selectedMealWeekOffset);
+  const sel = document.getElementById('suggest-date');
+  sel.innerHTML = '<option value="">Pick a day...</option>' +
+    dates.map(d => \`<option value="${d.date}">${d.shortLabel} ${d.display}</option>\`).join('');
+  document.getElementById('suggest-meal').value='';
+  document.getElementById('suggest-side').value='';
+  document.getElementById('suggest-notes').value='';
+  document.getElementById('suggest-overlay').classList.add('open');
+  document.getElementById('suggest-sheet').classList.add('open');
+}
+
+function closeSuggestSheet() {
+  document.getElementById('suggest-overlay').classList.remove('open');
+  document.getElementById('suggest-sheet').classList.remove('open');
+}
+
+async function submitSuggestion() {
+  const date = document.getElementById('suggest-date').value;
+  const meal = document.getElementById('suggest-meal').value.trim();
+  const side = document.getElementById('suggest-side').value.trim();
+  const notes = document.getElementById('suggest-notes').value.trim();
+  if (!date||!meal) { alert('Please pick a day and enter a meal name'); return; }
+  closeSuggestSheet();
+  await postToSheet({ action:'suggestMeal', date, meal, side, notes, suggestedBy:'Keegan' });
+  alert('Suggestion submitted! Your parents will review it. 😄');
 }
 document.addEventListener('DOMContentLoaded', function() {
   checkSession();
