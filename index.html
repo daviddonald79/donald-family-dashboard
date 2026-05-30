@@ -309,6 +309,10 @@ body { background: #f0f4f8; font-family: 'Nunito Sans', sans-serif; }
 .meal-day:active { transform: scale(0.96); }
 .meal-add-btn { background: none; border: 1.5px dashed #0d9488; border-radius: 8px; color: #0d9488; font-size: 11px; font-weight: 800; padding: 6px 10px; cursor: pointer; white-space: nowrap; font-family: 'Nunito Sans', sans-serif; }
 .meal-add-btn:hover { background: #f0fdfa; }
+
+.change-bg-btn { background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.3); border-radius: 8px; color: rgba(255,255,255,0.9); font-size: 10px; font-weight: 800; padding: 4px 8px; cursor: pointer; font-family: 'Nunito Sans', sans-serif; white-space: nowrap; transition: background 0.15s; }
+.change-bg-btn:hover { background: rgba(255,255,255,0.25); }
+#bg-file-input { display: none; }
 </style>
 </head>
 <body>
@@ -348,7 +352,11 @@ body { background: #f0f4f8; font-family: 'Nunito Sans', sans-serif; }
     </div>
 
     <div class="card summer-card">
-      <div class="section-title"><i class="ti ti-school"></i> Summer Work</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="section-title" style="margin-bottom:0;color:#f59e0b;"><i class="ti ti-school"></i> Summer Work</div>
+        <button class="change-bg-btn" onclick="document.getElementById('bg-file-input').click()">🖼️ Change BG</button>
+        <input type="file" id="bg-file-input" accept="image/*" onchange="changeSummerBg(event)">
+      </div>
       <div class="summer-grid">
         <div class="subject-block">
           <div class="subject-label">Math (Khan Academy)</div>
@@ -920,9 +928,38 @@ async function saveAllMeals() {
   btn.classList.remove('bs-saving');
   btn.textContent = 'Save Meals';
 }
+
+function changeSummerBg(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    setSummerBg(dataUrl);
+    try { localStorage.setItem('summerBg', dataUrl); } catch(err) { console.log('Storage full, bg not saved'); }
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function setSummerBg(dataUrl) {
+  const card = document.querySelector('.summer-card');
+  if (!card) return;
+  card.style.backgroundImage = "url('" + dataUrl + "')";
+  card.style.backgroundSize = 'cover';
+  card.style.backgroundPosition = 'center top';
+}
+
+function loadSavedSummerBg() {
+  try {
+    const saved = localStorage.getItem('summerBg');
+    if (saved) setSummerBg(saved);
+  } catch(err) {}
+}
 document.addEventListener('DOMContentLoaded', function() {
   updateDate();
   updateCountdown();
+  loadSavedSummerBg();
   fetchWeather();
   loadEvents();
   loadMeals();
