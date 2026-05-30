@@ -755,7 +755,12 @@ async function loadMeals() {
     const rows = await fetchSheet('Meals');
     const weekDates = getWeekDates();
     const mealMap = {};
-    rows.forEach(r => { if (r[0]) mealMap[r[0].trim()] = { meal: r[1]||'', side: r[2]||'' }; });
+    rows.forEach(r => { 
+      if (r[0]) {
+        const key = typeof r[0] === 'string' ? r[0].trim() : (() => { const d = new Date(r[0]); const yyyy = d.getFullYear(); const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return yyyy+'-'+mm+'-'+dd; })();
+        mealMap[key] = { meal: r[1]||'', side: r[2]||'' };
+      }
+    });
     const dayLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     setHTML('meal-grid', weekDates.map((d, i) => {
       const m = mealMap[d.date] || { meal: '', side: '' };
@@ -940,38 +945,63 @@ function calcMangaEarned(mc, rc) {
 }
 
 
-function getWeekDates() {
+function getWeekDates(offsetWeeks) {
+  offsetWeeks = offsetWeeks || 0;
   const today = new Date();
   today.setHours(0,0,0,0);
   const day = today.getDay();
   const monday = new Date(today);
-  monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+  monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1) + (offsetWeeks * 7));
   const dates = [];
   const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth()+1).padStart(2,'0');
     const dd = String(d.getDate()).padStart(2,'0');
-    dates.push({ label: dayNames[i], date: yyyy+'-'+mm+'-'+dd, display: dayNames[i].substring(0,3)+' '+d.getDate() });
+    dates.push({ 
+      label: dayNames[i], 
+      date: yyyy+'-'+mm+'-'+dd, 
+      display: dayNames[i].substring(0,3)+' '+monthNames[d.getMonth()]+' '+d.getDate(),
+      isPast: d < today
+    });
   }
   return dates;
 }
 
+let currentWeekOffset = 0;
+
 let currentMealData = {};
 
-async function openMealSheet() {
+async function openMealSheet(offset) {
+  if (offset !== undefined) currentWeekOffset = offset;
   const rows = await fetchSheet('Meals');
   currentMealData = {};
-  rows.forEach(r => { if (r[0]) currentMealData[r[0].trim()] = { meal: r[1]||'', side: r[2]||'' }; });
+  rows.forEach(r => { 
+    if (r[0]) {
+      const key = typeof r[0] === 'string' ? r[0].trim() : formatDate(new Date(r[0]));
+      currentMealData[key] = { meal: r[1]||'', side: r[2]||'' };
+    }
+  });
 
-  const weekDates = getWeekDates();
+  const weekDates = getWeekDates(currentWeekOffset);
+  const monday = weekDates[0];
+  const sunday = weekDates[6];
+
   const container = document.getElementById('bs-week-rows');
-  container.innerHTML = weekDates.map(d => {
+  
+  // Week navigator
+  const weekLabel = monday.display + ' — ' + sunday.display;
+  container.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px 12px;">
+    <button onclick="openMealSheet(${currentWeekOffset - 1})" style="background:none;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 14px;font-size:16px;cursor:pointer;">◀</button>
+    <div style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#1e3a5f;text-align:center;">${currentWeekOffset === 0 ? 'This Week' : currentWeekOffset === 1 ? 'Next Week' : currentWeekOffset === -1 ? 'Last Week' : weekLabel}</div>
+    <button onclick="openMealSheet(${currentWeekOffset + 1})" style="background:none;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 14px;font-size:16px;cursor:pointer;">▶</button>
+  </div>` + weekDates.map(d => {
     const existing = currentMealData[d.date] || { meal: '', side: '' };
-    return `<div class="bs-day-row">
-      <div class="bs-day-label">${d.display}</div>
+    return `<div class="bs-day-row" style="${d.isPast ? 'opacity:0.5;' : ''}">
+      <div class="bs-day-label">${d.display}${d.isPast ? ' · past' : ''}</div>
       <div class="bs-inputs">
         <input class="bs-input" id="meal-${d.date}" placeholder="Meal name" value="${existing.meal}" autocomplete="off">
         <input class="bs-input" id="side-${d.date}" placeholder="Side dish (optional)" value="${existing.side}" autocomplete="off">
@@ -984,6 +1014,13 @@ async function openMealSheet() {
   leviAudio.currentTime = 0; leviAudio.play();
 }
 
+function formatDate(d) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return yyyy+'-'+mm+'-'+dd;
+}
+
 function closeMealSheet() {
   document.getElementById('bs-overlay').classList.remove('open');
   document.getElementById('meal-sheet').classList.remove('open');
@@ -994,7 +1031,7 @@ async function saveAllMeals() {
   btn.classList.add('bs-saving');
   btn.textContent = 'Saving...';
 
-  const weekDates = getWeekDates();
+  const weekDates = getWeekDates(currentWeekOffset);
   const saves = weekDates.map(d => {
     const meal = document.getElementById('meal-'+d.date)?.value.trim() || '';
     const side = document.getElementById('side-'+d.date)?.value.trim() || '';
