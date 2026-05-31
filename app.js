@@ -1,7 +1,7 @@
-const flushAudio = new Audio('assets/flush.wav');
-const pieckAudio = new Audio('assets/pieck.mp3');
-const beastTitanAudio = new Audio('assets/beast-titan.mp3');
-const leviAudio = new Audio('assets/levi.mp3');
+const flushAudio = new Audio('flush.wav');
+const pieckAudio = new Audio('pieck.mp3');
+const beastTitanAudio = new Audio('beast-titan.mp3');
+const leviAudio = new Audio('levi.mp3');
 
 const WEEKS = [
   { label: 'Week 1 (Jul 7–11)',     mathNeeded: 1, readingNeeded: 1 },
